@@ -192,7 +192,7 @@ copado-hx git raw -- log --oneline -5
 ## Development
 
 ```bash
-python3 -m unittest
+python3 -m unittest discover -s tests
 python3 -m compileall src tests
 ```
 
