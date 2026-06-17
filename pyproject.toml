@@ -1,0 +1,42 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "copado-hx"
+version = "0.1.0"
+description = "Terminal-first Copado Source Format lifecycle CLI for Salesforce developers."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [
+  { name = "Copado HX Contributors" }
+]
+keywords = ["salesforce", "copado", "cli", "devops", "sfdx", "source-format"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Environment :: Console",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Software Development :: Build Tools",
+  "Topic :: Software Development :: Version Control :: Git",
+]
+dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/copado-hx/copado-hx"
+Issues = "https://github.com/copado-hx/copado-hx/issues"
+
+[project.scripts]
+copado-hx = "copado_hx.cli:entrypoint"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+copado_hx = ["py.typed"]
