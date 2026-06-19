@@ -1,0 +1,50 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "copado-hx"
+version = "0.1.0"
+description = "Terminal-first Copado DevOps lifecycle CLI for Salesforce developers."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { file = "LICENSE" }
+authors = [
+  { name = "Copado HX Contributors" }
+]
+keywords = ["copado", "salesforce", "devops", "cli", "cicd"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Environment :: Console",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Software Development :: Build Tools",
+]
+dependencies = [
+  "cryptography",
+  "httpx",
+  "keyring",
+  "pydantic",
+  "questionary",
+  "rich",
+  "typer",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest",
+]
+
+[project.scripts]
+copado-hx = "copado_hx.cli:app"
+
+[tool.setuptools.packages.find]
+include = ["copado_hx*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
