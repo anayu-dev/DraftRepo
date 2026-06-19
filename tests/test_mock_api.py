@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+from pathlib import Path
 
 from copado_hx.lib.mock_api import MockCopadoAPI
 
@@ -43,3 +44,20 @@ async def _assert_mock_api_validate_and_deploy() -> None:
     story = await api.get_story("US-002")
     assert story.status == "Deployed"
     assert story.target_org == "uat"
+
+
+def test_mock_api_persists_state_when_path_is_provided(tmp_path: Path) -> None:
+    asyncio.run(_assert_mock_api_persists_state_when_path_is_provided(tmp_path))
+
+
+async def _assert_mock_api_persists_state_when_path_is_provided(tmp_path: Path) -> None:
+    state_path = tmp_path / "mock-state.json"
+    first = MockCopadoAPI(state_path)
+    commit = await first.commit_story("US-001", "Persistent commit")
+
+    second = MockCopadoAPI(state_path)
+    story = await second.get_story("US-001")
+    operations = await second.pipeline_status("US-001")
+
+    assert story.status == "Committed"
+    assert [operation.id for operation in operations] == [commit.id]

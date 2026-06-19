@@ -1,18 +1,29 @@
 from __future__ import annotations
 
 import asyncio
-from itertools import count
+import json
+from pathlib import Path
 from typing import Optional
 
 from .api import OperationResult, UserStory
 
 
 class MockCopadoAPI:
-    """Deterministic in-memory Copado API for demos and tests."""
+    """Deterministic Copado API for demos and tests.
 
-    _counter = count(1001)
+    When a state path is provided, mock operations persist between CLI
+    invocations so demo mode behaves like a small local sandbox.
+    """
 
-    def __init__(self) -> None:
+    def __init__(self, state_path: Optional[Path] = None) -> None:
+        self.state_path = state_path
+        self.next_id = 1001
+        if state_path and state_path.exists():
+            self._load_state(state_path)
+            return
+        self._load_default_state()
+
+    def _load_default_state(self) -> None:
         self.stories: dict[str, UserStory] = {
             "US-001": UserStory(
                 id="US-001",
@@ -65,12 +76,14 @@ class MockCopadoAPI:
         story = self._story(story_id)
         updated = story.model_copy(update={"status": "Committed"})
         self.stories[story.id] = updated
-        return self._operation(
+        operation = self._operation(
             "commit",
             "Succeeded",
             f"Committed {story.key}: {message}",
             {"story_id": story.id, "include_metadata": include_metadata},
         )
+        self._save_state()
+        return operation
 
     async def promote_story(
         self,
@@ -85,12 +98,14 @@ class MockCopadoAPI:
             self.stories[story.id] = story.model_copy(
                 update={"status": "Promoted", "target_org": target_environment}
             )
-        return self._operation(
+        operation = self._operation(
             "promote",
             status,
             f"Promote {story.key} to {target_environment}",
             {"story_id": story.id, "target_environment": target_environment, "dry_run": dry_run},
         )
+        self._save_state()
+        return operation
 
     async def validate_story(self, story_id: str, target_environment: str) -> OperationResult:
         await self._latency()
@@ -98,12 +113,14 @@ class MockCopadoAPI:
         self.stories[story.id] = story.model_copy(
             update={"status": "Validated", "target_org": target_environment}
         )
-        return self._operation(
+        operation = self._operation(
             "validate",
             "Succeeded",
             f"Validated {story.key} against {target_environment}",
             {"story_id": story.id, "target_environment": target_environment},
         )
+        self._save_state()
+        return operation
 
     async def deploy_story(
         self,
@@ -126,6 +143,7 @@ class MockCopadoAPI:
         self.stories[story.id] = story.model_copy(
             update={"status": "Deployed", "target_org": target_environment}
         )
+        self._save_state()
         return operation
 
     async def deployment_status(self, deployment_id: str) -> OperationResult:
@@ -165,13 +183,39 @@ class MockCopadoAPI:
         data: dict[str, object],
     ) -> OperationResult:
         operation = OperationResult(
-            id=f"{prefix}-{next(self._counter)}",
+            id=f"{prefix}-{self.next_id}",
             status=status,
             message=message,
             data=data,
         )
+        self.next_id += 1
         self.operations[operation.id] = operation
         return operation
+
+    def _load_state(self, state_path: Path) -> None:
+        payload = json.loads(state_path.read_text(encoding="utf-8"))
+        self.next_id = int(payload.get("next_id", 1001))
+        self.stories = {
+            story["id"]: UserStory.model_validate(story)
+            for story in payload.get("stories", [])
+        }
+        self.operations = {
+            operation["id"]: OperationResult.model_validate(operation)
+            for operation in payload.get("operations", [])
+        }
+        if not self.stories:
+            self._load_default_state()
+
+    def _save_state(self) -> None:
+        if not self.state_path:
+            return
+        self.state_path.parent.mkdir(parents=True, exist_ok=True)
+        payload = {
+            "next_id": self.next_id,
+            "stories": [story.model_dump() for story in self.stories.values()],
+            "operations": [operation.model_dump() for operation in self.operations.values()],
+        }
+        self.state_path.write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8")
 
     @staticmethod
     async def _latency() -> None:

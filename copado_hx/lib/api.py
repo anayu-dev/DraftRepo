@@ -174,7 +174,12 @@ class CopadoAPIClient:
         return [OperationResult.model_validate(item) for item in items]
 
     async def _request(self, method: str, path: str, **kwargs: Any) -> Any:
-        client = await self._ensure_client()
+        if self._client is None:
+            async with httpx.AsyncClient(timeout=self.timeout) as client:
+                return await self._send(client, method, path, **kwargs)
+        return await self._send(self._client, method, path, **kwargs)
+
+    async def _send(self, client: httpx.AsyncClient, method: str, path: str, **kwargs: Any) -> Any:
         url = f"{self.base_url}{API_PREFIX}{path}"
         headers = kwargs.pop("headers", {})
         headers["Authorization"] = f"Bearer {self.api_token}"
@@ -187,11 +192,6 @@ class CopadoAPIClient:
         if not response.content:
             return {}
         return response.json()
-
-    async def _ensure_client(self) -> httpx.AsyncClient:
-        if self._client is None:
-            self._client = httpx.AsyncClient(timeout=self.timeout)
-        return self._client
 
     @staticmethod
     def _error_message(response: httpx.Response) -> str:
@@ -208,5 +208,5 @@ def build_api(config: ConfigManager, profile_name: Optional[str] = None) -> Copa
     if credentials.profile.demo:
         from .mock_api import MockCopadoAPI
 
-        return MockCopadoAPI()
+        return MockCopadoAPI(config.config_dir / "mock-api-state.json")
     return CopadoAPIClient(credentials.profile.base_url, credentials.api_token)
