@@ -16,6 +16,15 @@ It provides command groups for:
 
 ## Install
 
+`copado-hx` supports Python 3.10 and newer, including Python 3.14. To create a
+Python 3.14 virtual environment explicitly:
+
+```bash
+python3.14 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip setuptools wheel
+```
+
 ```bash
 python -m pip install .
 ```
